@@ -1,16 +1,16 @@
-FROM mambaorg/micromamba:1.2.0-bullseye-slim
+FROM condaforge/miniforge3:latest
 LABEL org.opencontainers.image.authors="us@couchbits.com"
 LABEL org.opencontainers.image.vendor="couchbits GmbH"
 
-COPY --chown=$MAMBA_USER:$MAMBA_USER environment.yml /tmp/env.yaml
-RUN micromamba install -y -n base -f /tmp/env.yaml && \
-    micromamba clean --all --yes
+ENV PROJECT_DIR /opt/cargo-agent-python
+ENV ENV_PREFIX=${PROJECT_DIR}/conda
 
 # the app
-ENV PROJECT_DIR /cargo-agent-python
 WORKDIR $PROJECT_DIR
-COPY --chown=$MAMBA_USER:$MAMBA_USER main.py .
-COPY --chown=$MAMBA_USER:$MAMBA_USER src/ ./src/
-COPY --chown=$MAMBA_USER:$MAMBA_USER test/ ./test/
+COPY main.py environment.yml ./
+COPY src/ ./src/
+COPY test/ ./test/
+RUN conda env create --prefix ${ENV_PREFIX}  --file environment.yml && \
+    conda clean --all --yes
 
-RUN micromamba run -n base python -m unittest
+RUN conda run --no-capture-output --prefix ${ENV_PREFIX} python3 -m unittest

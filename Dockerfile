@@ -1,15 +1,27 @@
-FROM mambaorg/micromamba:1.2.0-bullseye-slim
+FROM condaforge/miniforge3:latest
 LABEL org.opencontainers.image.authors="us@couchbits.com"
 LABEL org.opencontainers.image.vendor="couchbits GmbH"
 
-COPY --chown=$MAMBA_USER:$MAMBA_USER environment.yml /tmp/env.yaml
-RUN micromamba install -y -n base -f /tmp/env.yaml && \
-    micromamba clean --all --yes
+ENV PROJECT_DIR=/opt/cargo-agent-python
+ENV ENV_PREFIX=$PROJECT_DIR/conda
+RUN mkdir $PROJECT_DIR
+
+# Security Aspects
+ENV UID=moveapps
+ENV GID=moveapps
+RUN addgroup --system $GID && adduser --system $UID --ingroup $GID
+RUN chown $UID:$GID $PROJECT_DIR
+
+USER $UID:$GID
+WORKDIR $PROJECT_DIR
+
+# setup runtime environment
+COPY --chown=$UID:$GID environment.yml $PROJECT_DIR
+RUN conda env create --prefix $ENV_PREFIX --file $PROJECT_DIR/environment.yml && \
+    conda clean --all --yes
 
 # the app
-ENV PROJECT_DIR /cargo-agent-python
-WORKDIR $PROJECT_DIR
-COPY --chown=$MAMBA_USER:$MAMBA_USER main.py .
-COPY --chown=$MAMBA_USER:$MAMBA_USER src/ ./src/
+COPY --chown=$UID:$GID main.py .
+COPY --chown=$UID:$GID src/ ./src/
 
-CMD ["python", "main.py"]
+CMD [ "conda", "run", "--no-capture-output", "--prefix", "${ENV_PREFIX}", "python3", "main.py"]
