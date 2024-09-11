@@ -13,4 +13,4 @@ COPY test/ ./test/
 RUN conda env create --prefix ${ENV_PREFIX}  --file environment.yml && \
     conda clean --all --yes
 
-RUN conda run --prefix ${ENV_PREFIX} python3 -m unittest
+RUN conda run --no-capture-output --prefix ${ENV_PREFIX} python3 -m unittest

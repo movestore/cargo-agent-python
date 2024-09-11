@@ -24,4 +24,4 @@ RUN conda env create --prefix $ENV_PREFIX --file $PROJECT_DIR/environment.yml &&
 COPY --chown=$UID:$GID main.py .
 COPY --chown=$UID:$GID src/ ./src/
 
-CMD [ "conda", "run", "--prefix", "${ENV_PREFIX}", "python3", "main.py"]
+CMD [ "conda", "run", "--no-capture-output", "--prefix", "${ENV_PREFIX}", "python3", "main.py"]
