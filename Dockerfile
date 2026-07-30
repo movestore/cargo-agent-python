@@ -1,4 +1,5 @@
-FROM condaforge/miniforge3:latest
+# pinned: a floating tag silently moved this image to a base without `adduser`, breaking the build
+FROM condaforge/miniforge3:26.3.2-3
 LABEL org.opencontainers.image.authors="us@couchbits.com"
 LABEL org.opencontainers.image.vendor="couchbits GmbH"
 
@@ -9,7 +10,7 @@ RUN mkdir $PROJECT_DIR
 # Security Aspects
 ENV UID=moveapps
 ENV GID=moveapps
-RUN addgroup --system $GID && adduser --system $UID --ingroup $GID
+RUN groupadd --system $GID && useradd --system --gid $GID --create-home $UID
 RUN chown $UID:$GID $PROJECT_DIR
 
 USER $UID:$GID

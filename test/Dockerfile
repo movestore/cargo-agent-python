@@ -1,4 +1,5 @@
-FROM condaforge/miniforge3:latest
+# pinned for the same reason as the runtime image: keep the test base from drifting
+FROM condaforge/miniforge3:26.3.2-3
 LABEL org.opencontainers.image.authors="us@couchbits.com"
 LABEL org.opencontainers.image.vendor="couchbits GmbH"
 
