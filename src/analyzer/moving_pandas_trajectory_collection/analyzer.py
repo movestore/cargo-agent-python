@@ -1,8 +1,8 @@
 from geopandas import GeoDataFrame
 
 from src.analyzer.base_analyzer import BaseAnalyzer
+from src.moveapps_pickle import MoveAppsPickle
 
-import pandas as pd
 import geopandas as gpd
 import movingpandas as mpd
 import logging
@@ -23,7 +23,7 @@ class MovingPandasAnalyzer(BaseAnalyzer):
             }]
 
     def __read(self, path: str) -> mpd.TrajectoryCollection:
-        movingpandas = pd.read_pickle(path)
+        movingpandas = MoveAppsPickle.read(path=path)
         logging.info(f'read movingpandas: {movingpandas}')
         return movingpandas
 
