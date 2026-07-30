@@ -1,13 +1,19 @@
 import os.path
+import tempfile
 from unittest import TestCase
 from src.analyzer.moving_pandas_trajectory_collection.analyzer import MovingPandasAnalyzer
 from test.config.definitions import ROOT_DIR
+from test.config.fixtures import gzip_copy
 
 
 class TestMovingPandasAnalyzer(TestCase):
 
     def setUp(self) -> None:
         self.sut = MovingPandasAnalyzer()
+        self.tmp = tempfile.TemporaryDirectory()
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
 
     def test_it_should_handle_empty_input(self):
         # execute
@@ -52,6 +58,24 @@ class TestMovingPandasAnalyzer(TestCase):
         self.assertEqual(actual[9]['track_names'], ['X742..deploy_id.56853924.', 'X746..deploy_id.20813885.', 'X749..deploy_id.20813892.'])
         self.assertEqual(actual[10]['number_positions_by_track'], {'X742..deploy_id.56853924.': 3265, 'X746..deploy_id.20813885.': 3010, 'X749..deploy_id.20813892.': 1495})
         self.assertEqual(actual[11]['data_attributes'], ['sensor_type_id', 'barometric_pressure', 'data_decoding_software', 'eobs_activity', 'eobs_activity_samples', 'eobs_battery_voltage', 'eobs_fix_battery_voltage', 'eobs_horizontal_accuracy_estimate', 'eobs_key_bin_checksum', 'eobs_speed_accuracy_estimate', 'eobs_start_timestamp', 'eobs_status', 'eobs_temperature', 'eobs_type_of_fix', 'eobs_used_time_to_get_fix', 'gps_dop', 'gps_satellite_count', 'ground_speed', 'gt_tx_count', 'heading', 'height_above_ellipsoid', 'height_raw', 'import_marked_outlier', 'manually_marked_outlier', 'tag_voltage', 'timestamp', 'event_id', 'visible', 'individual_name_deployment_id', 'timestamp_tz', 'geometry'])
+        self.assertEqual(actual[12]['n'], ['non-empty-result'])
+
+    def test_it_should_analyze_a_gzip_compressed_input4_LatLon(self):
+        # prepare: an App on Python SDK v3 writes gzip-compressed output, under a file name that
+        # carries no extension
+        compressed = gzip_copy(
+            self.__test_file("input4_LatLon.pickle"),
+            os.path.join(self.tmp.name, "output_file")
+        )
+
+        # execute
+        actual = self.sut.analyze(path=compressed)
+
+        # verify: the compression makes no difference to the statistics
+        self.assertEqual(actual[0]['positions_total_number'], 7770)
+        self.assertEqual(actual[1]['timestamps_range'], ['2013-08-07 18:27:02', '2015-02-19 13:42:27'])
+        self.assertEqual(actual[8]['tracks_total_number'], 3)
+        self.assertEqual(actual[10]['number_positions_by_track'], {'X742..deploy_id.56853924.': 3265, 'X746..deploy_id.20813885.': 3010, 'X749..deploy_id.20813892.': 1495})
         self.assertEqual(actual[12]['n'], ['non-empty-result'])
 
     def __test_file(self, file_name) -> str:
