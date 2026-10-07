@@ -1,4 +1,5 @@
 from geopandas import GeoDataFrame
+from pyproj import CRS
 
 from src.analyzer.base_analyzer import BaseAnalyzer
 from src.moveapps_pickle import MoveAppsPickle
@@ -55,7 +56,10 @@ class MovingPandasAnalyzer(BaseAnalyzer):
         geom_col = movingpandas.get_geom_col()
         number_positions_by_track = dict(data.dissolve(by=traj_id_col, aggfunc={traj_id_col: "count"}).drop(geom_col, axis=1).rename(columns={traj_id_col: "count"}).reset_index().values)
 
-        projection = movingpandas.get_crs()
+        # built from a GeoDataFrame, a collection keeps a `pyproj.CRS`, which JSON cannot encode;
+        # built from x/y, the string it was given. Both report as e.g. 'EPSG:4326'
+        crs = movingpandas.get_crs()
+        projection = crs.srs if isinstance(crs, CRS) else crs
 
         #positions_bounding_box = data.total_bounds.tolist()
         positions_bounding_box = data.total_bounds

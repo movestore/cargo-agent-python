@@ -1,6 +1,13 @@
+import json
 import os.path
 import tempfile
 from unittest import TestCase
+
+import geopandas as gpd
+import movingpandas as mpd
+import pandas as pd
+from pyproj import CRS
+
 from src.analyzer.moving_pandas_trajectory_collection.analyzer import MovingPandasAnalyzer
 from test.config.definitions import ROOT_DIR
 from test.config.fixtures import gzip_copy
@@ -77,6 +84,30 @@ class TestMovingPandasAnalyzer(TestCase):
         self.assertEqual(actual[8]['tracks_total_number'], 3)
         self.assertEqual(actual[10]['number_positions_by_track'], {'X742..deploy_id.56853924.': 3265, 'X746..deploy_id.20813885.': 3010, 'X749..deploy_id.20813892.': 1495})
         self.assertEqual(actual[12]['n'], ['non-empty-result'])
+
+    def test_it_should_report_the_projection_of_a_collection_built_from_a_geodataframe(self):
+        # arrange: built from a GeoDataFrame, a collection keeps a `pyproj.CRS`, not the string it
+        # was given - e.g. the output of `move2_loc to MovingPandas` since link-r-python v2.2.1
+        collection = self.__collection_built_from_a_geodataframe()
+        self.assertIsInstance(collection.get_crs(), CRS)
+        output = os.path.join(self.tmp.name, "output_file")
+        pd.to_pickle(collection, output, compression='gzip')
+
+        # act: the result leaves the cargo-agent as JSON, so it has to survive the encoding
+        actual = json.loads(json.dumps(self.sut.analyze(path=output)))
+
+        # assert
+        self.assertEqual(actual[7]['projection'], 'EPSG:4326')
+        self.assertEqual(actual[12]['n'], ['non-empty-result'])
+
+    @staticmethod
+    def __collection_built_from_a_geodataframe() -> mpd.TrajectoryCollection:
+        points = gpd.GeoDataFrame(
+            {'track': ['a', 'a', 'b', 'b'], 't': pd.date_range('2026-01-01', periods=4, freq='h')},
+            geometry=gpd.points_from_xy([0.0, 1.0, 2.0, 3.0], [0.0, 1.0, 2.0, 3.0]),
+            crs='EPSG:4326',
+        )
+        return mpd.TrajectoryCollection(points, traj_id_col='track', t='t')
 
     def __test_file(self, file_name) -> str:
         return os.path.join(ROOT_DIR, 'test', 'resources', 'moving_pandas_trajectory_collection', file_name)
